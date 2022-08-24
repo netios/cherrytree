@@ -19,6 +19,11 @@ if(NOT PYTHON_EXEC)
   set(PYTHON_EXEC "python3")
 endif(NOT PYTHON_EXEC)
 
+if(SNAP_OPT_PRE_CMAKE_INSTALL_PREFIX)
+  set(OPT_PRE_CMAKE_INSTALL_PREFIX "${SNAP_OPT_PRE_CMAKE_INSTALL_PREFIX}")
+  add_compile_options(-D_SNAP_BUILD)
+endif()
+
 option(USE_NLS "Add locales support" ON)
 option(USE_SHARED_FMT_SPDLOG "Use shared fmt and spdlog (not those bundled)" ON)
 
