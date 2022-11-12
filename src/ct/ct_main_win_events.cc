@@ -49,7 +49,7 @@ void CtMainWin::_on_treeview_cursor_changed()
         _nodesVScrollPos[prevNodeId] = round(_scrolledwindowText.get_vadjustment()->get_value());
     }
 
-    _uCtTreestore->text_view_apply_textbuffer(treeIter, &_ctTextview);
+    _uCtTreestore->text_view_apply_textbuffer(_prevTreeIter, treeIter, &_ctTextview);
 
     if (user_active()) {
         auto mapIter = _nodesCursorPos.find(nodeId);

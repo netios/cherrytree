@@ -247,13 +247,13 @@ std::list<CtAnchoredWidget*> CtTreeIter::get_anchored_widgets_fast(const char do
         get_node_text_buffer(); // to load buffer\widgets if not loaded
         // removes invalid widgets (if they were deleted from buffer)
         std::list<CtAnchoredWidget*> retAnchoredWidgetsList;
-        bool resave_widgets = false;
-        for (CtAnchoredWidget* pCtAnchoredWidget : (*this)->get_value(_pColumns->colAnchoredWidgets))
-        {
+        bool resave_widgets{false};
+        for (CtAnchoredWidget* pCtAnchoredWidget : (*this)->get_value(_pColumns->colAnchoredWidgets)) {
             Glib::RefPtr<Gtk::TextChildAnchor> rChildAnchor = pCtAnchoredWidget->getTextChildAnchor();
             if (rChildAnchor && !rChildAnchor->get_deleted()) {
                 retAnchoredWidgetsList.push_back(pCtAnchoredWidget);
-            } else {
+            }
+            else {
                 delete pCtAnchoredWidget;
                 resave_widgets = true;
             }
@@ -485,7 +485,7 @@ void CtTreeStore::tree_view_connect(Gtk::TreeView* pTreeView)
     }
 }
 
-void CtTreeStore::text_view_apply_textbuffer(CtTreeIter& treeIter, CtTextView* pTextView)
+void CtTreeStore::text_view_apply_textbuffer(CtTreeIter& prevTreeIter, CtTreeIter& treeIter, CtTextView* pTextView)
 {
     if (not static_cast<bool>(treeIter)) {
         pTextView->set_buffer(Glib::RefPtr<Gsv::Buffer>{});
@@ -507,9 +507,14 @@ void CtTreeStore::text_view_apply_textbuffer(CtTreeIter& treeIter, CtTextView* p
     pTextView->setup_for_syntax(treeIter.get_node_syntax_highlighting());
 
     auto t1 = std::chrono::steady_clock::now();
-    {
-        auto prevBuffer = Glib::RefPtr<Gsv::Buffer>::cast_dynamic(pTextView->get_buffer());
-        if (prevBuffer) prevBuffer->begin_not_undoable_action();
+    if (static_cast<bool>(prevTreeIter)) {
+        //auto prevBuffer = Glib::RefPtr<Gsv::Buffer>::cast_dynamic(pTextView->get_buffer());
+        //if (prevBuffer) prevBuffer->begin_not_undoable_action();
+        for (CtAnchoredWidget* pCtAnchoredWidget : prevTreeIter.get_anchored_widgets_fast()) {
+            if (CtAnchWidgType::Table == pAnchoredWidget->get_type()) {
+                //
+            }
+        }
     }
     pTextView->set_buffer(Glib::RefPtr<Gsv::Buffer>{});
     auto t2 = std::chrono::steady_clock::now();

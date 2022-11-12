@@ -152,7 +152,7 @@ public:
     virtual ~CtTreeStore();
 
     void          tree_view_connect(Gtk::TreeView* pTreeView);
-    void          text_view_apply_textbuffer(CtTreeIter& treeIter, CtTextView* pTextView);
+    void          text_view_apply_textbuffer(CtTreeIter& prevTreeIter, CtTreeIter& treeIter, CtTextView* pTextView);
 
     void          get_node_data(const Gtk::TreeIter& treeIter, CtNodeData& nodeData);
     void          populate_summary_info(CtSummaryInfo& summaryInfo);

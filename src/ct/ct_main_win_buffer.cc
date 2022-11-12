@@ -457,7 +457,7 @@ void CtMainWin::load_buffer_from_state(std::shared_ptr<CtNodeState> state, CtTre
     text_buffer->end_not_undoable_action();
     text_buffer->set_modified(false);
 
-    _uCtTreestore->text_view_apply_textbuffer(tree_iter, &_ctTextview);
+    _uCtTreestore->text_view_apply_textbuffer(tree_iter, tree_iter, &_ctTextview);
     _ctTextview.grab_focus();
 
     _ctTextview.set_spell_check(curr_tree_iter().get_node_is_text());
@@ -495,7 +495,7 @@ void CtMainWin::switch_buffer_text_source(Glib::RefPtr<Gsv::Buffer> text_buffer,
 
     auto new_buffer = get_new_text_buffer(node_text);
     tree_iter.set_node_text_buffer(new_buffer, new_syntax);
-    _uCtTreestore->text_view_apply_textbuffer(tree_iter, &_ctTextview);
+    _uCtTreestore->text_view_apply_textbuffer(tree_iter, tree_iter, &_ctTextview);
 
     user_active() = user_active_restore;
 }
