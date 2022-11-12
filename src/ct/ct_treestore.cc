@@ -505,6 +505,17 @@ void CtTreeStore::text_view_apply_textbuffer(CtTreeIter& treeIter, CtTextView* p
     Glib::RefPtr<Gsv::Buffer> rTextBuffer = treeIter.get_node_text_buffer();
     _pCtMainWin->apply_syntax_highlighting(rTextBuffer, treeIter.get_node_syntax_highlighting(), false/*forceReApply*/);
     pTextView->setup_for_syntax(treeIter.get_node_syntax_highlighting());
+
+    auto t1 = std::chrono::steady_clock::now();
+    {
+        auto prevBuffer = Glib::RefPtr<Gsv::Buffer>::cast_dynamic(pTextView->get_buffer());
+        if (prevBuffer) prevBuffer->begin_not_undoable_action();
+    }
+    pTextView->set_buffer(Glib::RefPtr<Gsv::Buffer>{});
+    auto t2 = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_seconds = t2 - t1;
+    spdlog::debug("pTextView->set_buffer(null): {} sec", elapsed_seconds.count());
+
     pTextView->set_buffer(rTextBuffer);
     pTextView->set_spell_check(treeIter.get_node_is_text());
     pTextView->set_sensitive(true);
