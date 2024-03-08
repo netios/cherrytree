@@ -618,7 +618,7 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
                                              anchMatchList))
         {
             match_offsets.first = anchMatchList[0].start_offset;
-            match_offsets.second = anchMatchList[0].end_offset;
+            match_offsets.second = match_offsets.first + 1;
         }
     }
     if (match_offsets.first == -1) return false;
@@ -683,7 +683,7 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
     return true;
 }
 
-bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
+bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                                          CtAnchoredWidget* pAnchWidg,
                                          const bool forward,
                                          CtAnchMatchList& anchMatchList)
@@ -694,7 +694,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
         if (_s_options.accent_insensitive) {
             text = str::diacritical_to_ascii(text);
         }
-        if (pattern->match(text)) {
+        if (re_pattern->match(text)) {
             auto pAnchMatch = std::make_shared<CtAnchMatch>();
             pAnchMatch->start_offset = pAnchWidg->getOffset();
             pAnchMatch->line_content = text;
@@ -708,7 +708,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
         if (_s_options.accent_insensitive) {
             text = str::diacritical_to_ascii(text);
         }
-        if (pattern->match(text)) {
+        if (re_pattern->match(text)) {
             auto pAnchMatch = std::make_shared<CtAnchMatch>();
             pAnchMatch->start_offset = pAnchWidg->getOffset();
             pAnchMatch->line_content = text;
@@ -722,10 +722,29 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
         if (_s_options.accent_insensitive) {
             text = str::diacritical_to_ascii(text);
         }
-        if (pattern->match(text)) {
-            
-            
-            
+        Glib::MatchInfo match_info;
+        if (re_pattern->match(text, match_info)) {
+            CtAnchMatchList localAnchMatchList;
+            while (match_info.matches()) {
+                int match_start_offset, match_end_offset;
+                match_info.fetch_pos(0, match_start_offset, match_end_offset);
+                match_start_offset = str::byte_pos_to_symb_pos(text, match_start_offset);
+                match_end_offset = str::byte_pos_to_symb_pos(text, match_end_offset);
+                auto pAnchMatch = std::make_shared<CtAnchMatch>();
+                pAnchMatch->start_offset = pAnchWidg->getOffset();
+                pAnchMatch->line_content = _get_line_content(pCodebox->get_buffer(), match_end_offset);
+                pAnchMatch->anch_type = pAnchWidg->get_type();
+                pAnchMatch->anch_offs_start = match_start_offset;
+                pAnchMatch->anch_offs_end = match_end_offset;
+                localAnchMatchList.push_back(pAnchMatch);
+                match_info.next();
+            }
+            if (not forward) {
+                std::reverse(localAnchMatchList.begin(), localAnchMatchList.end());
+            }
+            for (auto& pAnchMatch : localAnchMatchList) {
+                anchMatchList.push_back(pAnchMatch);
+            }
             retVal = true;
         }
     }
@@ -733,11 +752,11 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
         std::vector<std::vector<Glib::ustring>> rows;
         table->write_strings_matrix(rows);
         for (auto& row : rows) {
-            for (Glib::ustring& col : row) {
+            for (Glib::ustring& text : row) {
                 if (_s_options.accent_insensitive) {
-                    col = str::diacritical_to_ascii(col);
+                    text = str::diacritical_to_ascii(col);
                 }
-                if (pattern->match(col)) {
+                if (re_pattern->match(text)) {
                     return "<table>";
                 }
             }
@@ -748,7 +767,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
 
 bool CtActions::_check_pattern_in_object_between(CtTreeIter tree_iter,
                                                  Glib::RefPtr<Gtk::TextBuffer> text_buffer,
-                                                 Glib::RefPtr<Glib::Regex> pattern,
+                                                 Glib::RefPtr<Glib::Regex> re_pattern,
                                                  const int start_offset,
                                                  const int end_offset,
                                                  const bool forward,
@@ -761,16 +780,19 @@ bool CtActions::_check_pattern_in_object_between(CtTreeIter tree_iter,
             Gtk::TextIter start, end;
             text_buffer->get_bounds(start, end);
             end_offset = end.get_offset();
-        } else
+        }
+        else {
             end_offset = 0;
+        }
     }
     if (not forward) std::swap(start_offset, end_offset);
 
     std::list<CtAnchoredWidget*> obj_vec = tree_iter.get_anchored_widgets(start_offset, end_offset);
-    if (not forward)
+    if (not forward) {
         std::reverse(obj_vec.begin(), obj_vec.end());
+    }
     for (auto element : obj_vec) {
-        if (_check_pattern_in_object(pattern, element, forward, anchMatchList) not retVal) {
+        if (_check_pattern_in_object(re_pattern, element, forward, anchMatchList) not retVal) {
             retVal = true;
         }
     }
