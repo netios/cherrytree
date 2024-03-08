@@ -765,10 +765,11 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                 spdlog::warn("!! unexp no CtCodebox");
             }
         } break;
-        case CtAnchWidgType::TableHeavy: {
-            if (auto pTable = dynamic_cast<CtTableHeavy*>(pAnchWidg)) {
+        case CtAnchWidgType::TableHeavy:
+        case CtAnchWidgType::TableLight: {
+            if (auto pTable = dynamic_cast<CtTableCommon*>(pAnchWidg)) {
                 std::vector<std::vector<Glib::ustring>> rows;
-                table->write_strings_matrix(rows);
+                pTable->write_strings_matrix(rows);
                 CtAnchMatchList localAnchMatchList;
                 size_t rowIdx{0u};
                 for (auto& row : rows) {
@@ -786,7 +787,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                                 match_end_offset = str::byte_pos_to_symb_pos(text, match_end_offset);
                                 auto pAnchMatch = std::make_shared<CtAnchMatch>();
                                 pAnchMatch->start_offset = pAnchWidg->getOffset();
-                                pAnchMatch->line_content = _get_line_content(pTable->get_buffer(rowIdx, colIdx), match_end_offset);
+                                pAnchMatch->line_content = pTable->get_line_content(rowIdx, colIdx, match_end_offset);
                                 pAnchMatch->anch_type = anchWidgType;
                                 pAnchMatch->anch_offs_start = match_start_offset;
                                 pAnchMatch->anch_offs_end = match_end_offset;
@@ -810,31 +811,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                 }
             }
             else {
-                spdlog::warn("!! unexp no CtTableHeavy");
-            }
-        } break;
-        case CtAnchWidgType::TableLight: {
-            // table light interface does not currently support multiple matches in a cell
-            if (auto pTable = dynamic_cast<CtTableLight*>(pAnchWidg)) {
-                std::vector<std::vector<Glib::ustring>> rows;
-                table->write_strings_matrix(rows);
-                for (auto& row : rows) {
-                    for (Glib::ustring& text : row) {
-                        if (_s_options.accent_insensitive) {
-                            text = str::diacritical_to_ascii(col);
-                        }
-                        if (re_pattern->match(text)) {
-                            
-                            
-                            
-                            
-                            retVal = true;
-                        }
-                    }
-                }
-            }
-            else {
-                spdlog::warn("!! unexp no CtTableLight");
+                spdlog::warn("!! unexp no CtTableCommon");
             }
         } break;
     }
@@ -895,41 +872,6 @@ int CtActions::_get_num_objs_before_offset(Glib::RefPtr<Gtk::TextBuffer> text_bu
         curr_offset = next_offset;
     }
     return num_objs;
-}
-
-// Returns the Line Content Given the Text Iter
-Glib::ustring CtActions::_get_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer, const int match_end_offset)
-{
-    Gtk::TextIter line_start = text_buffer->get_iter_at_offset(match_end_offset);
-    Gtk::TextIter line_end = line_start;
-    if (not line_start.backward_char()) return "";
-    while (line_start.get_char() != '\n')
-        if (not line_start.backward_char())
-            break;
-    if (line_start.get_char() == '\n')
-        line_start.forward_char();
-    while (line_end.get_char() != '\n')
-        if (not line_end.forward_char())
-            break;
-    Glib::ustring line_content = text_buffer->get_text(line_start, line_end);
-    return line_content.size() <= _line_content_limit ?
-        line_content : line_content.substr(0u, _line_content_limit) + "...";
-}
-
-// Returns the First Not Empty Line Content Given the Text Buffer
-Glib::ustring CtActions::_get_first_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer)
-{
-    Gtk::TextIter start_iter = text_buffer->get_iter_at_offset(0);
-    while (start_iter.get_char() == '\n')
-        if (not start_iter.forward_char())
-            return "";
-    Gtk::TextIter end_iter = start_iter;
-    while (end_iter.get_char() != '\n')
-        if (not end_iter.forward_char())
-            break;
-    Glib::ustring line_content = text_buffer->get_text(start_iter, end_iter);
-    return line_content.size() <= _line_content_limit ?
-        line_content : line_content.substr(0u, _line_content_limit) + "...";
 }
 
 void CtActions::_update_all_matches_progress()

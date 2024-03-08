@@ -523,6 +523,41 @@ int CtTextIterUtil::get_words_count(const Glib::RefPtr<Gtk::TextBuffer>& text_bu
     return words;
 }
 
+// Returns the Line Content Given the Text Iter
+Glib::ustring CtTextIterUtil::get_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer, const int match_end_offset)
+{
+    Gtk::TextIter line_start = text_buffer->get_iter_at_offset(match_end_offset);
+    Gtk::TextIter line_end = line_start;
+    if (not line_start.backward_char()) return "";
+    while (line_start.get_char() != '\n')
+        if (not line_start.backward_char())
+            break;
+    if (line_start.get_char() == '\n')
+        line_start.forward_char();
+    while (line_end.get_char() != '\n')
+        if (not line_end.forward_char())
+            break;
+    Glib::ustring line_content = text_buffer->get_text(line_start, line_end);
+    return line_content.size() <= LINE_CONTENT_LIMIT ?
+        line_content : line_content.substr(0u, LINE_CONTENT_LIMIT) + "...";
+}
+
+// Returns the First Not Empty Line Content Given the Text Buffer
+Glib::ustring CtTextIterUtil::get_first_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer)
+{
+    Gtk::TextIter start_iter = text_buffer->get_iter_at_offset(0);
+    while (start_iter.get_char() == '\n')
+        if (not start_iter.forward_char())
+            return "";
+    Gtk::TextIter end_iter = start_iter;
+    while (end_iter.get_char() != '\n')
+        if (not end_iter.forward_char())
+            break;
+    Glib::ustring line_content = text_buffer->get_text(start_iter, end_iter);
+    return line_content.size() <= LINE_CONTENT_LIMIT ?
+        line_content : line_content.substr(0u, LINE_CONTENT_LIMIT) + "...";
+}
+
 // copied from https://gitlab.gnome.org/GNOME/gtk.git  origin/gtk-3-24  gtkpango.c  _gtk_pango_unichar_direction
 PangoDirection CtStrUtil::gtk_pango_unichar_direction(gunichar ch)
 {

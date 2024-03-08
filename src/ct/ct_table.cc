@@ -598,12 +598,21 @@ CtTextView& CtTableHeavy::curr_cell_text_view() const
     return static_cast<CtTextCell*>(_tableMatrix.at(current_row()).at(current_column()))->get_text_view();
 }
 
-Glib::RefPtr<Gsv::Buffer> CtTableHeavy::get_buffer(const size_t rowIdx, const size_t colIdx)
+Glib::RefPtr<Gsv::Buffer> CtTableHeavy::get_buffer(const size_t rowIdx, const size_t colIdx) const
 {
     if (rowIdx < get_num_rows() and colIdx < get_num_columns()) {
         return static_cast<CtTextCell*>(_tableMatrix.at(current_row()).at(current_column()))->get_buffer();
     }
     return Glib::RefPtr<Gsv::Buffer>{};
+}
+
+Glib::ustring CtTableHeavy::get_line_content(size_t rowIdx, size_t colIdx, int match_end_offset) const
+{
+    Glib::RefPtr<Gsv::Buffer> pBuffer = get_buffer(rowIdx, colIdx);
+    if (pBuffer) {
+        return CtTextIterUtil::get_line_content(pBuffer, match_end_offset);
+    }
+    return "!?";
 }
 
 void CtTableHeavy::_on_grid_set_focus_child(Gtk::Widget* pWidget)
