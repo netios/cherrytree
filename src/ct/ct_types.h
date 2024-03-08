@@ -465,8 +465,6 @@ struct CtSearchState {
 
 struct CtAnchMatch {
     int             start_offset;
-    int             end_offset;
-    int             line_num;
     Glib::ustring   line_content;
     CtAnchWidgType  anch_type;
     int             anch_cell_idx;

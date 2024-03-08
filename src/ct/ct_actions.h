@@ -226,18 +226,18 @@ private:
                        Gtk::TextIter start_iter,
                        bool forward,
                        bool all_matches);
-    const size_t       _line_content_limit{100u};
-    Glib::ustring      _get_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer,
-                                         const int match_end_offset);
-    Glib::ustring      _get_first_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer);
-    Glib::ustring      _check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
-                                                CtAnchoredWidget* obj);
+    const size_t  _line_content_limit{100u};
+    Glib::ustring _get_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer,
+                                    const int match_end_offset);
+    Glib::ustring _get_first_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer);
+    std::shared_ptr<CtAnchMatch> _check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
+                                                          CtAnchoredWidget* obj);
     bool _check_pattern_in_object_between(CtTreeIter tree_iter,
                                           Glib::RefPtr<Gtk::TextBuffer> text_buffer,
                                           Glib::RefPtr<Glib::Regex> pattern,
-                                          int start_offset,
-                                          int end_offset,
-                                          bool forward,
+                                          const int start_offset,
+                                          const int end_offset,
+                                          const bool forward,
                                           CtAnchMatchList& anchMatchList);
     int  _get_num_objs_before_offset(Glib::RefPtr<Gtk::TextBuffer> text_buffer, int max_offset);
     void _update_all_matches_progress();

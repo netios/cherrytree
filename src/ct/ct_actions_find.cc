@@ -683,24 +683,53 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
     return true;
 }
 
-// Search for the pattern in the given object
-Glib::ustring CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern, CtAnchoredWidget* obj)
+bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
+                                         CtAnchoredWidget* pAnchWidg,
+                                         const bool forward,
+                                         CtAnchMatchList& anchMatchList)
 {
-    if (CtImageEmbFile* image = dynamic_cast<CtImageEmbFile*>(obj)) {
+    bool retVal{false};
+    if (CtImageEmbFile* pImageEmbFile = dynamic_cast<CtImageEmbFile*>(pAnchWidg)) {
         Glib::ustring text = image->get_file_name().string();
         if (_s_options.accent_insensitive) {
             text = str::diacritical_to_ascii(text);
         }
-        if (pattern->match(text)) return text;
+        if (pattern->match(text)) {
+            auto pAnchMatch = std::make_shared<CtAnchMatch>();
+            pAnchMatch->start_offset = pAnchWidg->getOffset();
+            pAnchMatch->line_content = text;
+            pAnchMatch->anch_type = pAnchWidg->get_type();
+            anchMatchList.push_back(pAnchMatch);
+            retVal = true;
+        }
     }
-    else if (CtImageAnchor* image = dynamic_cast<CtImageAnchor*>(obj)) {
+    else if (CtImageAnchor* pImageAnchor = dynamic_cast<CtImageAnchor*>(pAnchWidg)) {
         Glib::ustring text = image->get_anchor_name();
         if (_s_options.accent_insensitive) {
             text = str::diacritical_to_ascii(text);
         }
-        if (pattern->match(text)) return text;
+        if (pattern->match(text)) {
+            auto pAnchMatch = std::make_shared<CtAnchMatch>();
+            pAnchMatch->start_offset = pAnchWidg->getOffset();
+            pAnchMatch->line_content = text;
+            pAnchMatch->anch_type = pAnchWidg->get_type();
+            anchMatchList.push_back(pAnchMatch);
+            retVal = true;
+        }
     }
-    else if (auto table = dynamic_cast<CtTableCommon*>(obj)) {
+    else if (CtCodebox* pCodebox = dynamic_cast<CtCodebox*>(pAnchWidg)) {
+        Glib::ustring text = codebox->get_text_content();
+        if (_s_options.accent_insensitive) {
+            text = str::diacritical_to_ascii(text);
+        }
+        if (pattern->match(text)) {
+            
+            
+            
+            retVal = true;
+        }
+    }
+    else if (auto pTable = dynamic_cast<CtTableCommon*>(pAnchWidg)) {
         std::vector<std::vector<Glib::ustring>> rows;
         table->write_strings_matrix(rows);
         for (auto& row : rows) {
@@ -714,25 +743,18 @@ Glib::ustring CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> patt
             }
         }
     }
-    else if (CtCodebox* codebox = dynamic_cast<CtCodebox*>(obj)) {
-        Glib::ustring text = codebox->get_text_content();
-        if (_s_options.accent_insensitive) {
-            text = str::diacritical_to_ascii(text);
-        }
-        if (pattern->match(text)) return "<codebox>";
-    }
-    return "";
+    return retVal;
 }
 
-// Search for the pattern in the given slice and direction
 bool CtActions::_check_pattern_in_object_between(CtTreeIter tree_iter,
                                                  Glib::RefPtr<Gtk::TextBuffer> text_buffer,
                                                  Glib::RefPtr<Glib::Regex> pattern,
-                                                 int start_offset,
-                                                 int end_offset,
-                                                 bool forward,
+                                                 const int start_offset,
+                                                 const int end_offset,
+                                                 const bool forward,
                                                  CtAnchMatchList& anchMatchList)
 {
+    bool retVal{false};
     if (not forward) start_offset -= 1;
     if (end_offset < 0) {
         if (forward) {
@@ -748,14 +770,13 @@ bool CtActions::_check_pattern_in_object_between(CtTreeIter tree_iter,
     if (not forward)
         std::reverse(obj_vec.begin(), obj_vec.end());
     for (auto element : obj_vec) {
-        obj_content = _check_pattern_in_object(pattern, element);
-        if (not obj_content.empty())
-            return {element->getOffset(), element->getOffset() + 1};
+        if (_check_pattern_in_object(pattern, element, forward, anchMatchList) not retVal) {
+            retVal = true;
+        }
     }
-    return {-1, -1};
+    return retVal;
 }
 
-// Returns the num of objects from buffer start to the given offset
 int CtActions::_get_num_objs_before_offset(Glib::RefPtr<Gtk::TextBuffer> text_buffer, int max_offset)
 {
     int num_objs = 0;
