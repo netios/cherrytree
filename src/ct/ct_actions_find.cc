@@ -689,78 +689,154 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                                          CtAnchMatchList& anchMatchList)
 {
     bool retVal{false};
-    if (CtImageEmbFile* pImageEmbFile = dynamic_cast<CtImageEmbFile*>(pAnchWidg)) {
-        Glib::ustring text = image->get_file_name().string();
-        if (_s_options.accent_insensitive) {
-            text = str::diacritical_to_ascii(text);
-        }
-        if (re_pattern->match(text)) {
-            auto pAnchMatch = std::make_shared<CtAnchMatch>();
-            pAnchMatch->start_offset = pAnchWidg->getOffset();
-            pAnchMatch->line_content = text;
-            pAnchMatch->anch_type = pAnchWidg->get_type();
-            anchMatchList.push_back(pAnchMatch);
-            retVal = true;
-        }
-    }
-    else if (CtImageAnchor* pImageAnchor = dynamic_cast<CtImageAnchor*>(pAnchWidg)) {
-        Glib::ustring text = image->get_anchor_name();
-        if (_s_options.accent_insensitive) {
-            text = str::diacritical_to_ascii(text);
-        }
-        if (re_pattern->match(text)) {
-            auto pAnchMatch = std::make_shared<CtAnchMatch>();
-            pAnchMatch->start_offset = pAnchWidg->getOffset();
-            pAnchMatch->line_content = text;
-            pAnchMatch->anch_type = pAnchWidg->get_type();
-            anchMatchList.push_back(pAnchMatch);
-            retVal = true;
-        }
-    }
-    else if (CtCodebox* pCodebox = dynamic_cast<CtCodebox*>(pAnchWidg)) {
-        Glib::ustring text = codebox->get_text_content();
-        if (_s_options.accent_insensitive) {
-            text = str::diacritical_to_ascii(text);
-        }
-        Glib::MatchInfo match_info;
-        if (re_pattern->match(text, match_info)) {
-            CtAnchMatchList localAnchMatchList;
-            while (match_info.matches()) {
-                int match_start_offset, match_end_offset;
-                match_info.fetch_pos(0, match_start_offset, match_end_offset);
-                match_start_offset = str::byte_pos_to_symb_pos(text, match_start_offset);
-                match_end_offset = str::byte_pos_to_symb_pos(text, match_end_offset);
-                auto pAnchMatch = std::make_shared<CtAnchMatch>();
-                pAnchMatch->start_offset = pAnchWidg->getOffset();
-                pAnchMatch->line_content = _get_line_content(pCodebox->get_buffer(), match_end_offset);
-                pAnchMatch->anch_type = pAnchWidg->get_type();
-                pAnchMatch->anch_offs_start = match_start_offset;
-                pAnchMatch->anch_offs_end = match_end_offset;
-                localAnchMatchList.push_back(pAnchMatch);
-                match_info.next();
-            }
-            if (not forward) {
-                std::reverse(localAnchMatchList.begin(), localAnchMatchList.end());
-            }
-            for (auto& pAnchMatch : localAnchMatchList) {
-                anchMatchList.push_back(pAnchMatch);
-            }
-            retVal = true;
-        }
-    }
-    else if (auto pTable = dynamic_cast<CtTableCommon*>(pAnchWidg)) {
-        std::vector<std::vector<Glib::ustring>> rows;
-        table->write_strings_matrix(rows);
-        for (auto& row : rows) {
-            for (Glib::ustring& text : row) {
+    const CtAnchWidgType anchWidgType = pAnchWidg->get_type();
+    switch (anchWidgType) {
+        case CtAnchWidgType::ImageEmbFile: {
+            if (CtImageEmbFile* pImageEmbFile = dynamic_cast<CtImageEmbFile*>(pAnchWidg)) {
+                Glib::ustring text = image->get_file_name().string();
                 if (_s_options.accent_insensitive) {
-                    text = str::diacritical_to_ascii(col);
+                    text = str::diacritical_to_ascii(text);
                 }
                 if (re_pattern->match(text)) {
-                    return "<table>";
+                    auto pAnchMatch = std::make_shared<CtAnchMatch>();
+                    pAnchMatch->start_offset = pAnchWidg->getOffset();
+                    pAnchMatch->line_content = text;
+                    pAnchMatch->anch_type = anchWidgType;
+                    anchMatchList.push_back(pAnchMatch);
+                    retVal = true;
                 }
             }
-        }
+            else {
+                spdlog::warn("!! unexp no CtImageEmbFile");
+            }
+        } break;
+        case CtAnchWidgType::ImageAnchor: {
+            if (CtImageAnchor* pImageAnchor = dynamic_cast<CtImageAnchor*>(pAnchWidg)) {
+                Glib::ustring text = image->get_anchor_name();
+                if (_s_options.accent_insensitive) {
+                    text = str::diacritical_to_ascii(text);
+                }
+                if (re_pattern->match(text)) {
+                    auto pAnchMatch = std::make_shared<CtAnchMatch>();
+                    pAnchMatch->start_offset = pAnchWidg->getOffset();
+                    pAnchMatch->line_content = text;
+                    pAnchMatch->anch_type = anchWidgType;
+                    anchMatchList.push_back(pAnchMatch);
+                    retVal = true;
+                }
+            }
+            else {
+                spdlog::warn("!! unexp no CtImageAnchor");
+            }
+        } break;
+        case CtAnchWidgType::CodeBox: {
+            if (CtCodebox* pCodebox = dynamic_cast<CtCodebox*>(pAnchWidg)) {
+                Glib::ustring text = codebox->get_text_content();
+                if (_s_options.accent_insensitive) {
+                    text = str::diacritical_to_ascii(text);
+                }
+                Glib::MatchInfo match_info;
+                if (re_pattern->match(text, match_info)) {
+                    CtAnchMatchList localAnchMatchList;
+                    while (match_info.matches()) {
+                        int match_start_offset, match_end_offset;
+                        match_info.fetch_pos(0, match_start_offset, match_end_offset);
+                        match_start_offset = str::byte_pos_to_symb_pos(text, match_start_offset);
+                        match_end_offset = str::byte_pos_to_symb_pos(text, match_end_offset);
+                        auto pAnchMatch = std::make_shared<CtAnchMatch>();
+                        pAnchMatch->start_offset = pAnchWidg->getOffset();
+                        pAnchMatch->line_content = _get_line_content(pCodebox->get_buffer(), match_end_offset);
+                        pAnchMatch->anch_type = anchWidgType;
+                        pAnchMatch->anch_offs_start = match_start_offset;
+                        pAnchMatch->anch_offs_end = match_end_offset;
+                        localAnchMatchList.push_back(pAnchMatch);
+                        match_info.next();
+                    }
+                    if (not forward) {
+                        std::reverse(localAnchMatchList.begin(), localAnchMatchList.end());
+                    }
+                    for (auto& pAnchMatch : localAnchMatchList) {
+                        anchMatchList.push_back(pAnchMatch);
+                    }
+                    retVal = true;
+                }
+            }
+            else {
+                spdlog::warn("!! unexp no CtCodebox");
+            }
+        } break;
+        case CtAnchWidgType::TableHeavy: {
+            if (auto pTable = dynamic_cast<CtTableHeavy*>(pAnchWidg)) {
+                std::vector<std::vector<Glib::ustring>> rows;
+                table->write_strings_matrix(rows);
+                CtAnchMatchList localAnchMatchList;
+                size_t rowIdx{0u};
+                for (auto& row : rows) {
+                    size_t colIdx{0u};
+                    for (Glib::ustring& text : row) {
+                        if (_s_options.accent_insensitive) {
+                            text = str::diacritical_to_ascii(col);
+                        }
+                        Glib::MatchInfo match_info;
+                        if (re_pattern->match(text, match_info)) {
+                            while (match_info.matches()) {
+                                int match_start_offset, match_end_offset;
+                                match_info.fetch_pos(0, match_start_offset, match_end_offset);
+                                match_start_offset = str::byte_pos_to_symb_pos(text, match_start_offset);
+                                match_end_offset = str::byte_pos_to_symb_pos(text, match_end_offset);
+                                auto pAnchMatch = std::make_shared<CtAnchMatch>();
+                                pAnchMatch->start_offset = pAnchWidg->getOffset();
+                                pAnchMatch->line_content = _get_line_content(pTable->get_buffer(rowIdx, colIdx), match_end_offset);
+                                pAnchMatch->anch_type = anchWidgType;
+                                pAnchMatch->anch_offs_start = match_start_offset;
+                                pAnchMatch->anch_offs_end = match_end_offset;
+                                pAnchMatch->anch_cell_idx = pTable->get_num_columns()*rowIdx + colIdx;
+                                localAnchMatchList.push_back(pAnchMatch);
+                                match_info.next();
+                            }
+                        }
+                        ++colIdx;
+                    }
+                    ++rowIdx;
+                }
+                if (localAnchMatchList.size() > 0u) {
+                    if (not forward) {
+                        std::reverse(localAnchMatchList.begin(), localAnchMatchList.end());
+                    }
+                    for (auto& pAnchMatch : localAnchMatchList) {
+                        anchMatchList.push_back(pAnchMatch);
+                    }
+                    retVal = true;
+                }
+            }
+            else {
+                spdlog::warn("!! unexp no CtTableHeavy");
+            }
+        } break;
+        case CtAnchWidgType::TableLight: {
+            // table light interface does not currently support multiple matches in a cell
+            if (auto pTable = dynamic_cast<CtTableLight*>(pAnchWidg)) {
+                std::vector<std::vector<Glib::ustring>> rows;
+                table->write_strings_matrix(rows);
+                for (auto& row : rows) {
+                    for (Glib::ustring& text : row) {
+                        if (_s_options.accent_insensitive) {
+                            text = str::diacritical_to_ascii(col);
+                        }
+                        if (re_pattern->match(text)) {
+                            
+                            
+                            
+                            
+                            retVal = true;
+                        }
+                    }
+                }
+            }
+            else {
+                spdlog::warn("!! unexp no CtTableLight");
+            }
+        } break;
     }
     return retVal;
 }

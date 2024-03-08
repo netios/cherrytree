@@ -1,7 +1,7 @@
 /*
  * ct_table.cc
  *
- * Copyright 2009-2023
+ * Copyright 2009-2024
  * Giuseppe Penone <giuspen@gmail.com>
  * Evgenii Gurianov <https://github.com/txe>
  *
@@ -596,6 +596,14 @@ void CtTableHeavy::grab_focus() const
 CtTextView& CtTableHeavy::curr_cell_text_view() const
 {
     return static_cast<CtTextCell*>(_tableMatrix.at(current_row()).at(current_column()))->get_text_view();
+}
+
+Glib::RefPtr<Gsv::Buffer> CtTableHeavy::get_buffer(const size_t rowIdx, const size_t colIdx)
+{
+    if (rowIdx < get_num_rows() and colIdx < get_num_columns()) {
+        return static_cast<CtTextCell*>(_tableMatrix.at(current_row()).at(current_column()))->get_buffer();
+    }
+    return Glib::RefPtr<Gsv::Buffer>{};
 }
 
 void CtTableHeavy::_on_grid_set_focus_child(Gtk::Widget* pWidget)
