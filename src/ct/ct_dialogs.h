@@ -105,6 +105,10 @@ public:
         Gtk::TreeModelColumn<int>            end_offset;
         Gtk::TreeModelColumn<int>            line_num;
         Gtk::TreeModelColumn<Glib::ustring>  line_content;
+        Gtk::TreeModelColumn<CtAnchWidgType> anch_type;
+        Gtk::TreeModelColumn<int>            anch_cell_idx;
+        Gtk::TreeModelColumn<int>            anch_offs_start;
+        Gtk::TreeModelColumn<int>            anch_offs_end;
         CtMatchModelColumns() {
             add(node_id);
             add(node_name);
@@ -113,6 +117,10 @@ public:
             add(end_offset);
             add(line_num);
             add(line_content);
+            add(anch_type);
+            add(anch_cell_idx);
+            add(anch_offs_start);
+            add(anch_offs_end);
         }
     } columns;
     std::array<int, 2>  dlg_size{0,0};

@@ -607,13 +607,20 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
         match_offsets.second = str::byte_pos_to_symb_pos(text, match_offsets.second);
     }
 
-    std::pair<int,int> obj_match_offsets{-1, -1};
-    Glib::ustring obj_content;
+    CtAnchMatchList anchMatchList;
     if (not _s_state.replace_active) {
-        obj_match_offsets = _check_pattern_in_object_between(tree_iter, text_buffer, re_pattern,
-            start_iter.get_offset(), match_offsets.first, forward, obj_content);
+        if (_check_pattern_in_object_between(tree_iter,
+                                             text_buffer,
+                                             re_pattern,
+                                             start_iter.get_offset(),
+                                             match_offsets.first,
+                                             forward,
+                                             anchMatchList))
+        {
+            match_offsets.first = anchMatchList[0].start_offset;
+            match_offsets.second = anchMatchList[0].end_offset;
+        }
     }
-    if (obj_match_offsets.first != -1) match_offsets = obj_match_offsets;
     if (match_offsets.first == -1) return false;
 
     // match found!
@@ -718,13 +725,13 @@ Glib::ustring CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> patt
 }
 
 // Search for the pattern in the given slice and direction
-std::pair<int, int> CtActions::_check_pattern_in_object_between(CtTreeIter tree_iter,
-                                                                Glib::RefPtr<Gtk::TextBuffer> text_buffer,
-                                                                Glib::RefPtr<Glib::Regex> pattern,
-                                                                int start_offset,
-                                                                int end_offset,
-                                                                bool forward,
-                                                                Glib::ustring& obj_content)
+bool CtActions::_check_pattern_in_object_between(CtTreeIter tree_iter,
+                                                 Glib::RefPtr<Gtk::TextBuffer> text_buffer,
+                                                 Glib::RefPtr<Glib::Regex> pattern,
+                                                 int start_offset,
+                                                 int end_offset,
+                                                 bool forward,
+                                                 CtAnchMatchList& anchMatchList)
 {
     if (not forward) start_offset -= 1;
     if (end_offset < 0) {

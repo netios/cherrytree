@@ -46,7 +46,7 @@ enum class CtDocType { None, XML, SQLite, MultiFile };
 
 enum class CtDocEncrypt { None, True, False };
 
-enum class CtAnchWidgType { CodeBox, TableHeavy, TableLight, ImagePng, ImageAnchor, ImageLatex, ImageEmbFile };
+enum class CtAnchWidgType { None, CodeBox, TableHeavy, TableLight, ImagePng, ImageAnchor, ImageLatex, ImageEmbFile };
 
 enum class CtPixTabCBox { Pixbuf, Table, CodeBox };
 
@@ -462,3 +462,16 @@ struct CtSearchState {
     Gtk::Dialog*                     pMatchStoreDialog{nullptr};
     bool                             in_loading{false};
 };
+
+struct CtAnchMatch {
+    int             start_offset;
+    int             end_offset;
+    int             line_num;
+    Glib::ustring   line_content;
+    CtAnchWidgType  anch_type;
+    int             anch_cell_idx;
+    int             anch_offs_start;
+    int             anch_offs_end;
+};
+
+using CtAnchMatchList = std::vector<std::shared_ptr<CtAnchMatch>>;

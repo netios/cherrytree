@@ -232,13 +232,13 @@ private:
     Glib::ustring      _get_first_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer);
     Glib::ustring      _check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
                                                 CtAnchoredWidget* obj);
-    std::pair<int, int> _check_pattern_in_object_between(CtTreeIter tree_iter,
-                                                         Glib::RefPtr<Gtk::TextBuffer> text_buffer,
-                                                         Glib::RefPtr<Glib::Regex> pattern,
-                                                         int start_offset,
-                                                         int end_offset,
-                                                         bool forward,
-                                                         Glib::ustring& obj_content);
+    bool _check_pattern_in_object_between(CtTreeIter tree_iter,
+                                          Glib::RefPtr<Gtk::TextBuffer> text_buffer,
+                                          Glib::RefPtr<Glib::Regex> pattern,
+                                          int start_offset,
+                                          int end_offset,
+                                          bool forward,
+                                          CtAnchMatchList& anchMatchList);
     int  _get_num_objs_before_offset(Glib::RefPtr<Gtk::TextBuffer> text_buffer, int max_offset);
     void _update_all_matches_progress();
 public:
