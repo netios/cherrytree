@@ -622,16 +622,22 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
     if (match_offsets.first == -1) return false;
 
     // match found!
-    {
+    if (0u == anchMatchList.size()) {
         const int num_objs = _get_num_objs_before_offset(text_buffer, match_offsets.first);
         _s_state.latest_match_offsets.first = match_offsets.first + num_objs;
         _s_state.latest_match_offsets.second = match_offsets.second + num_objs;
+    }
+    else {
+        // the match offset comes from the anchored widget
+        _s_state.latest_match_offsets.first = match_offsets.first;
+        _s_state.latest_match_offsets.second = match_offsets.second;
     }
     CtMatchRowData* pCtMatchRowData{nullptr};
     if (all_matches) {
         const gint64 node_id = tree_iter.get_node_id();
         const Glib::ustring node_name = tree_iter.get_node_name();
         const std::string node_hier_name = CtMiscUtil::get_node_hierarchical_name(tree_iter, "  /  ", false/*for_filename*/, true/*root_to_leaf*/);
+        const Glib::ustring esc_node_hier_name = str::xml_escape(node_hier_name);
         const Glib::ustring text_tags = tree_iter.get_node_tags();
         const Glib::ustring node_name_w_tags = text_tags.empty() ? node_name : node_name + "\n [" +  _("Tags") + _(": ") + text_tags + "]";
         if (0u == anchMatchList.size()) {
@@ -639,7 +645,7 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
             const Glib::ustring line_content = CtTextIterUtil::get_line_content(text_buffer, _s_state.latest_match_offsets.second);
             pCtMatchRowData = _s_state.match_store->add_row(node_id,
                                                             node_name_w_tags,
-                                                            str::xml_escape(node_hier_name),
+                                                            esc_node_hier_name,
                                                             _s_state.latest_match_offsets.first,
                                                             _s_state.latest_match_offsets.second,
                                                             line_num,
@@ -648,15 +654,12 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
         }
         else {
             for (std::shared_ptr<CtAnchMatch>& pAnchMatch : anchMatchList) {
-                match_offsets.first = pAnchMatch->start_offset;
-                match_offsets.second = match_offsets.first + 1;
-                const int num_objs = _get_num_objs_before_offset(text_buffer, match_offsets.first);
-                _s_state.latest_match_offsets.first = match_offsets.first + num_objs;
-                _s_state.latest_match_offsets.second = match_offsets.second + num_objs;
+                _s_state.latest_match_offsets.first = pAnchMatch->start_offset;
+                _s_state.latest_match_offsets.second = _s_state.latest_match_offsets.first + 1;
                 const int line_num = text_buffer->get_iter_at_offset(_s_state.latest_match_offsets.first).get_line();
                 (void)_s_state.match_store->add_row(node_id,
                                                     node_name_w_tags,
-                                                    str::xml_escape(node_hier_name),
+                                                    esc_node_hier_name,
                                                     _s_state.latest_match_offsets.first,
                                                     _s_state.latest_match_offsets.second,
                                                     line_num,
@@ -676,6 +679,37 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
         CtTextView& ct_text_view = _pCtMainWin->get_text_view();
         ct_text_view.set_selection_at_offset_n_delta(_s_state.latest_match_offsets.first, match_offsets.second - match_offsets.first);
         ct_text_view.scroll_to(text_buffer->get_insert(), CtTextView::TEXT_SCROLL_MARGIN);
+        if (anchMatchList.size() > 0u) {
+            switch (anchMatchList.front()->anch_type) {
+                case CtAnchWidgType::CodeBox: {
+                    Gtk::TextIter anchor_iter = text_buffer->get_iter_at_offset(anchMatchList.front()->start_offset);
+                    Glib::RefPtr<Gtk::TextChildAnchor> rChildAnchor = anchor_iter.get_child_anchor();
+                    if (rChildAnchor) {
+                        CtAnchoredWidget* pCtAnchoredWidget = tree_iter.get_anchored_widget(rChildAnchor);
+                        if (pCtAnchoredWidget) {
+                            if (auto pCodebox = dynamic_cast<CtCodebox*>(pCtAnchoredWidget)) {
+                                pCodebox->get_text_view().set_selection_at_offset_n_delta(anchMatchList.front()->anch_offs_start,
+                                    anchMatchList.front()->anch_offs_end - anchMatchList.front()->anch_offs_start);
+                            }
+                            else {
+                                spdlog::debug("!pCodebox");
+                            }
+                        }
+                        else {
+                            spdlog::debug("!pCtAnchoredWidget");
+                        }
+                    }
+                    else {
+                        spdlog::debug("!rChildAnchor");
+                    }
+                } break;
+                case CtAnchWidgType::TableHeavy:
+                case CtAnchWidgType::TableLight: {
+                    
+                } break;
+                default: break;
+            }
+        }
     }
     if (_s_state.replace_active and 0u == anchMatchList.size()) {
         if (tree_iter.get_node_read_only()) return false;
