@@ -633,7 +633,7 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
         const Glib::ustring node_name = tree_iter.get_node_name();
         const std::string node_hier_name = CtMiscUtil::get_node_hierarchical_name(tree_iter, "  /  ", false/*for_filename*/, true/*root_to_leaf*/);
         const Glib::ustring line_content = obj_match_offsets.first != -1 ?
-            obj_content : _get_line_content(text_buffer, _s_state.latest_match_offsets.second);
+            obj_content : CtTextIterUtil::get_line_content(text_buffer, _s_state.latest_match_offsets.second);
         int line_num = text_buffer->get_iter_at_offset(_s_state.latest_match_offsets.first).get_line();
         line_num += 1;
         const Glib::ustring text_tags = tree_iter.get_node_tags();
@@ -745,7 +745,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                         match_end_offset = str::byte_pos_to_symb_pos(text, match_end_offset);
                         auto pAnchMatch = std::make_shared<CtAnchMatch>();
                         pAnchMatch->start_offset = pAnchWidg->getOffset();
-                        pAnchMatch->line_content = _get_line_content(pCodebox->get_buffer(), match_end_offset);
+                        pAnchMatch->line_content = CtTextIterUtil::get_line_content(pCodebox->get_buffer(), match_end_offset);
                         pAnchMatch->anch_type = anchWidgType;
                         pAnchMatch->anch_offs_start = match_start_offset;
                         pAnchMatch->anch_offs_end = match_end_offset;

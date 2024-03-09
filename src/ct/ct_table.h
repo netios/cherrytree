@@ -69,7 +69,7 @@ public:
     // Serialise to csv format; The output CSV excel csv with double quotes around cells and newlines for each record
     virtual std::string to_csv() const = 0;
 
-    virtual Glib::ustring get_line_content(size_t rowIdx, size_t colIdx, int match_end_offset) const = 0;
+    virtual Glib::ustring get_line_content(const size_t rowIdx, const size_t colIdx, const int match_end_offset) const = 0;
 
     virtual void write_strings_matrix(std::vector<std::vector<Glib::ustring>>& rows) const = 0;
     virtual size_t get_num_rows() const = 0;
@@ -138,7 +138,7 @@ public:
 
     void apply_syntax_highlighting(const bool /*forceReApply*/) override {}
     std::string to_csv() const override;
-    Glib::ustring get_line_content(size_t rowIdx, size_t colIdx, int match_end_offset) const override;
+    Glib::ustring get_line_content(const size_t rowIdx, const size_t colIdx, const int match_end_offset) const override;
     void set_modified_false() override {}
     CtAnchWidgType get_type() const override { return CtAnchWidgType::TableLight; }
     std::shared_ptr<CtAnchoredWidgetState> get_state() override;
@@ -195,7 +195,7 @@ public:
 
     void apply_syntax_highlighting(const bool forceReApply) override;
     std::string to_csv() const override;
-    Glib::ustring get_line_content(size_t rowIdx, size_t colIdx, int match_end_offset) const override;
+    Glib::ustring get_line_content(const size_t rowIdx, const size_t colIdx, const int match_end_offset) const override;
     void set_modified_false() override;
     CtAnchWidgType get_type() const override { return CtAnchWidgType::TableHeavy; }
     std::shared_ptr<CtAnchoredWidgetState> get_state() override;

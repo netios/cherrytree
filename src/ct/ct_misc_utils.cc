@@ -542,6 +542,22 @@ Glib::ustring CtTextIterUtil::get_line_content(Glib::RefPtr<Gtk::TextBuffer> tex
         line_content : line_content.substr(0u, LINE_CONTENT_LIMIT) + "...";
 }
 
+Glib::ustring CtTextIterUtil::get_line_content(const Glib::ustring& text_multiline, const int match_end_offset)
+{
+    std::vector<Glib::ustring> splitted = str::split(text_multiline, "\n");
+    int sum_rows_chars{0};
+    for (const Glib::ustring& line_content : splitted) {
+        sum_rows_chars += line_content.size();
+        ++sum_rows_chars; // newline
+        if (sum_rows_chars >= match_end_offset) {
+            return line_content.size() <= LINE_CONTENT_LIMIT ?
+                line_content : line_content.substr(0u, LINE_CONTENT_LIMIT) + "...";
+        }
+    }
+    spdlog::warn("!! {} offs {}", __FUNCTION__, match_end_offset);
+    return "!?";
+}
+
 // Returns the First Not Empty Line Content Given the Text Buffer
 Glib::ustring CtTextIterUtil::get_first_line_content(Glib::RefPtr<Gtk::TextBuffer> text_buffer)
 {
