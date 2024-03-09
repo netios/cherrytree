@@ -450,7 +450,7 @@ bool CtActions::_parse_node_name_n_tags_iter(CtTreeIter& node_iter,
             _s_state.match_store->add_row(node_id,
                                           text_tags.empty() ? node_name : node_name + "\n [" +  _("Tags") + _(": ") + text_tags + "]",
                                           str::xml_escape(node_hier_name),
-                                          0, 0, 1, line_content);
+                                          0, 0, 1, line_content, CtAnchWidgType::None, 0, 0, 0);
         }
         if (_s_state.replace_active and not node_iter.get_node_read_only()) {
             std::string replacer_text = _s_options.str_replace;
@@ -608,42 +608,65 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
     }
 
     CtAnchMatchList anchMatchList;
-    if (not _s_state.replace_active) {
-        if (_check_pattern_in_object_between(tree_iter,
-                                             text_buffer,
-                                             re_pattern,
-                                             start_iter.get_offset(),
-                                             match_offsets.first,
-                                             forward,
-                                             anchMatchList))
-        {
-            match_offsets.first = anchMatchList[0].start_offset;
-            match_offsets.second = match_offsets.first + 1;
-        }
+    if (_check_pattern_in_object_between(tree_iter,
+                                         text_buffer,
+                                         re_pattern,
+                                         start_iter.get_offset(),
+                                         match_offsets.first,
+                                         forward,
+                                         anchMatchList))
+    {
+        match_offsets.first = anchMatchList[0]->start_offset;
+        match_offsets.second = match_offsets.first + 1;
     }
     if (match_offsets.first == -1) return false;
 
     // match found!
-    const int num_objs = _get_num_objs_before_offset(text_buffer, match_offsets.first);
-    _s_state.latest_match_offsets.first = match_offsets.first + num_objs;
-    _s_state.latest_match_offsets.second = match_offsets.second + num_objs;
+    {
+        const int num_objs = _get_num_objs_before_offset(text_buffer, match_offsets.first);
+        _s_state.latest_match_offsets.first = match_offsets.first + num_objs;
+        _s_state.latest_match_offsets.second = match_offsets.second + num_objs;
+    }
     CtMatchRowData* pCtMatchRowData{nullptr};
     if (all_matches) {
         const gint64 node_id = tree_iter.get_node_id();
         const Glib::ustring node_name = tree_iter.get_node_name();
         const std::string node_hier_name = CtMiscUtil::get_node_hierarchical_name(tree_iter, "  /  ", false/*for_filename*/, true/*root_to_leaf*/);
-        const Glib::ustring line_content = obj_match_offsets.first != -1 ?
-            obj_content : CtTextIterUtil::get_line_content(text_buffer, _s_state.latest_match_offsets.second);
-        int line_num = text_buffer->get_iter_at_offset(_s_state.latest_match_offsets.first).get_line();
-        line_num += 1;
         const Glib::ustring text_tags = tree_iter.get_node_tags();
-        pCtMatchRowData = _s_state.match_store->add_row(node_id,
-                                                        text_tags.empty() ? node_name : node_name + "\n [" +  _("Tags") + _(": ") + text_tags + "]",
-                                                        str::xml_escape(node_hier_name),
-                                                        _s_state.latest_match_offsets.first,
-                                                        _s_state.latest_match_offsets.second,
-                                                        line_num,
-                                                        line_content);
+        const Glib::ustring node_name_w_tags = text_tags.empty() ? node_name : node_name + "\n [" +  _("Tags") + _(": ") + text_tags + "]";
+        if (0u == anchMatchList.size()) {
+            const int line_num = text_buffer->get_iter_at_offset(_s_state.latest_match_offsets.first).get_line();
+            const Glib::ustring line_content = CtTextIterUtil::get_line_content(text_buffer, _s_state.latest_match_offsets.second);
+            pCtMatchRowData = _s_state.match_store->add_row(node_id,
+                                                            node_name_w_tags,
+                                                            str::xml_escape(node_hier_name),
+                                                            _s_state.latest_match_offsets.first,
+                                                            _s_state.latest_match_offsets.second,
+                                                            line_num,
+                                                            line_content,
+                                                            CtAnchWidgType::None, 0, 0, 0);
+        }
+        else {
+            for (std::shared_ptr<CtAnchMatch>& pAnchMatch : anchMatchList) {
+                match_offsets.first = pAnchMatch->start_offset;
+                match_offsets.second = match_offsets.first + 1;
+                const int num_objs = _get_num_objs_before_offset(text_buffer, match_offsets.first);
+                _s_state.latest_match_offsets.first = match_offsets.first + num_objs;
+                _s_state.latest_match_offsets.second = match_offsets.second + num_objs;
+                const int line_num = text_buffer->get_iter_at_offset(_s_state.latest_match_offsets.first).get_line();
+                (void)_s_state.match_store->add_row(node_id,
+                                                    node_name_w_tags,
+                                                    str::xml_escape(node_hier_name),
+                                                    _s_state.latest_match_offsets.first,
+                                                    _s_state.latest_match_offsets.second,
+                                                    line_num,
+                                                    pAnchMatch->line_content,
+                                                    pAnchMatch->anch_type,
+                                                    pAnchMatch->anch_cell_idx,
+                                                    pAnchMatch->anch_offs_start,
+                                                    pAnchMatch->anch_offs_end);
+            }
+        }
     }
     else {
         CtTreeIter curr_tree_iter = _pCtMainWin->curr_tree_iter();
@@ -654,7 +677,7 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
         ct_text_view.set_selection_at_offset_n_delta(_s_state.latest_match_offsets.first, match_offsets.second - match_offsets.first);
         ct_text_view.scroll_to(text_buffer->get_insert(), CtTextView::TEXT_SCROLL_MARGIN);
     }
-    if (_s_state.replace_active) {
+    if (_s_state.replace_active and 0u == anchMatchList.size()) {
         if (tree_iter.get_node_read_only()) return false;
         Gtk::TextIter sel_start = text_buffer->get_iter_at_offset(_s_state.latest_match_offsets.first);
         Gtk::TextIter sel_end = text_buffer->get_iter_at_offset(_s_state.latest_match_offsets.second);
@@ -844,8 +867,8 @@ bool CtActions::_check_pattern_in_object_between(CtTreeIter tree_iter,
     if (not forward) {
         std::reverse(obj_vec.begin(), obj_vec.end());
     }
-    for (auto element : obj_vec) {
-        if (_check_pattern_in_object(re_pattern, element, forward, anchMatchList) not retVal) {
+    for (CtAnchoredWidget* pAnchWidg : obj_vec) {
+        if (_check_pattern_in_object(re_pattern, pAnchWidg, forward, anchMatchList) not retVal) {
             retVal = true;
         }
     }
