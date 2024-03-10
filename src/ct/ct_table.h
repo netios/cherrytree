@@ -95,6 +95,7 @@ public:
 
     virtual void grab_focus() const = 0;
     virtual void exit_cell_edit() const = 0;
+    virtual void set_selection_at_offset_n_delta(const int offset, const int delta) const = 0;
 
     bool on_table_button_press_event(GdkEventButton* event);
     void on_cell_populate_popup(Gtk::Menu* menu);
@@ -162,6 +163,7 @@ public:
 
     void grab_focus() const override;
     void exit_cell_edit() const override;
+    void set_selection_at_offset_n_delta(const int offset, const int delta) const override;
 
 protected:
     void _reset(CtTableMatrix& tableMatrix);
@@ -222,6 +224,7 @@ public:
 
     void grab_focus() const override;
     void exit_cell_edit() const override {}
+    void set_selection_at_offset_n_delta(const int offset, const int delta) const override;
 
 protected:
     void _apply_styles_to_cells(const bool forceReApply);
