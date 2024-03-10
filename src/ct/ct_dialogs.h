@@ -92,6 +92,10 @@ struct CtMatchRowData {
     int             end_offset;
     int             line_num;
     Glib::ustring   line_content;
+    CtAnchWidgType  anch_type;
+    int             anch_cell_idx;
+    int             anch_offs_start;
+    int             anch_offs_end;
 };
 class CtMatchDialogStore : public Gtk::ListStore
 {
@@ -130,13 +134,17 @@ public:
     static Glib::RefPtr<CtMatchDialogStore> create(const size_t maxMatchesInPage);
 
     void deep_clear();
-    CtMatchRowData* add_row(gint64 node_id,
+    CtMatchRowData* add_row(const gint64 node_id,
                             const Glib::ustring& node_name,
                             const Glib::ustring& node_hier_name,
-                            int start_offset,
-                            int end_offset,
-                            int line_num,
-                            const Glib::ustring& line_content);
+                            const int start_offset,
+                            const int end_offset,
+                            const int line_num,
+                            const Glib::ustring& line_content,
+                            const CtAnchWidgType anch_type,
+                            const int anch_cell_idx,
+                            const int anch_offs_start,
+                            const int anch_offs_end);
     void load_current_page();
     void load_next_page();
     void load_prev_page();

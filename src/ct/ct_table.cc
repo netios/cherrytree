@@ -609,7 +609,7 @@ void CtTableHeavy::grab_focus() const
     static_cast<CtTextCell*>(_tableMatrix.at(current_row()).at(current_column()))->get_text_view().grab_focus();
 }
 
-void CtTableHeavy::set_selection_at_offset_n_delta(const int offset, const int delta)
+void CtTableHeavy::set_selection_at_offset_n_delta(const int offset, const int delta) const
 {
     curr_cell_text_view().set_selection_at_offset_n_delta(offset, delta);
 }

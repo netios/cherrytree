@@ -381,13 +381,17 @@ void CtMatchDialogStore::deep_clear()
     _all_matches.clear();
 }
 
-CtMatchRowData* CtMatchDialogStore::add_row(gint64 node_id,
+CtMatchRowData* CtMatchDialogStore::add_row(const gint64 node_id,
                                             const Glib::ustring& node_name,
                                             const Glib::ustring& node_hier_name,
-                                            int start_offset,
-                                            int end_offset,
-                                            int line_num,
-                                            const Glib::ustring& line_content)
+                                            const int start_offset,
+                                            const int end_offset,
+                                            const int line_num,
+                                            const Glib::ustring& line_content,
+                                            const CtAnchWidgType anch_type,
+                                            const int anch_cell_idx,
+                                            const int anch_offs_start,
+                                            const int anch_offs_end)
 {
     _all_matches.push_back(CtMatchRowData{
         .node_id = node_id,
@@ -396,7 +400,11 @@ CtMatchRowData* CtMatchDialogStore::add_row(gint64 node_id,
         .start_offset = start_offset,
         .end_offset = end_offset,
         .line_num = line_num,
-        .line_content = line_content
+        .line_content = line_content,
+        .anch_type = anch_type,
+        .anch_cell_idx = anch_cell_idx,
+        .anch_offs_start = anch_offs_start,
+        .anch_offs_end = anch_offs_end
     });
     return &_all_matches.back();
 }

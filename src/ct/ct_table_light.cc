@@ -461,13 +461,13 @@ void CtTableLight::exit_cell_edit() const
     _pManagedTreeView->set_cursor(Gtk::TreePath{std::to_string(current_row())});
 }
 
-void CtTableLight::set_selection_at_offset_n_delta(const int offset, const int delta)
+void CtTableLight::set_selection_at_offset_n_delta(const int offset, const int delta) const
 {
     if (not _pEditingCellEntry) {
         spdlog::warn("!! {} !_pEditingCellEntry", __FUNCTION__);
         return;
     }
-    
+    _pEditingCellEntry->select_region(offset, offset+delta);
 }
 
 Glib::ustring CtTableLight::get_line_content(const size_t rowIdx, const size_t colIdx, const int match_end_offset) const

@@ -226,13 +226,15 @@ private:
                        Gtk::TextIter start_iter,
                        bool forward,
                        bool all_matches);
-    std::shared_ptr<CtAnchMatch> _check_pattern_in_object(Glib::RefPtr<Glib::Regex> pattern,
-                                                          CtAnchoredWidget* obj);
+    bool _check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
+                                  CtAnchoredWidget* pAnchWidg,
+                                  const bool forward,
+                                  CtAnchMatchList& anchMatchList);
     bool _check_pattern_in_object_between(CtTreeIter tree_iter,
                                           Glib::RefPtr<Gtk::TextBuffer> text_buffer,
                                           Glib::RefPtr<Glib::Regex> pattern,
-                                          const int start_offset,
-                                          const int end_offset,
+                                          int start_offset,
+                                          int end_offset,
                                           const bool forward,
                                           CtAnchMatchList& anchMatchList);
     int  _get_num_objs_before_offset(Glib::RefPtr<Gtk::TextBuffer> text_buffer, int max_offset);

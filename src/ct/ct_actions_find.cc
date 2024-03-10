@@ -445,7 +445,7 @@ bool CtActions::_parse_node_name_n_tags_iter(CtTreeIter& node_iter,
         if (all_matches) {
             gint64 node_id = node_iter.get_node_id();
             Glib::ustring node_hier_name = CtMiscUtil::get_node_hierarchical_name(node_iter, "  /  ", false/*for_filename*/, true/*root_to_leaf*/);
-            Glib::ustring line_content = _get_first_line_content(node_iter.get_node_text_buffer());
+            Glib::ustring line_content = CtTextIterUtil::get_first_line_content(node_iter.get_node_text_buffer());
             const Glib::ustring text_tags = node_iter.get_node_tags();
             _s_state.match_store->add_row(node_id,
                                           text_tags.empty() ? node_name : node_name + "\n [" +  _("Tags") + _(": ") + text_tags + "]",
@@ -699,8 +699,9 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
                         case CtAnchWidgType::TableLight: {
                             if (auto pTable = dynamic_cast<CtTableCommon*>(pCtAnchoredWidget)) {
                                 const size_t anch_cell_idx = anchMatchList.front()->anch_cell_idx;
-                                const size_t rowIdx = anch_cell_idx / get_num_rows();
-                                const size_t colIdx = anch_cell_idx % get_num_rows();
+                                const size_t num_columns = pTable->get_num_columns();
+                                const size_t rowIdx = anch_cell_idx / num_columns;
+                                const size_t colIdx = anch_cell_idx % num_columns;
                                 pTable->set_current_row_column(rowIdx, colIdx);
                                 pTable->grab_focus();
                                 pTable->set_selection_at_offset_n_delta(anchMatchList.front()->anch_offs_start,
@@ -761,7 +762,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
     switch (anchWidgType) {
         case CtAnchWidgType::ImageEmbFile: {
             if (CtImageEmbFile* pImageEmbFile = dynamic_cast<CtImageEmbFile*>(pAnchWidg)) {
-                Glib::ustring text = image->get_file_name().string();
+                Glib::ustring text = pImageEmbFile->get_file_name().string();
                 if (_s_options.accent_insensitive) {
                     text = str::diacritical_to_ascii(text);
                 }
@@ -780,7 +781,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
         } break;
         case CtAnchWidgType::ImageAnchor: {
             if (CtImageAnchor* pImageAnchor = dynamic_cast<CtImageAnchor*>(pAnchWidg)) {
-                Glib::ustring text = image->get_anchor_name();
+                Glib::ustring text = pImageAnchor->get_anchor_name();
                 if (_s_options.accent_insensitive) {
                     text = str::diacritical_to_ascii(text);
                 }
@@ -799,7 +800,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
         } break;
         case CtAnchWidgType::CodeBox: {
             if (CtCodebox* pCodebox = dynamic_cast<CtCodebox*>(pAnchWidg)) {
-                Glib::ustring text = codebox->get_text_content();
+                Glib::ustring text = pCodebox->get_text_content();
                 if (_s_options.accent_insensitive) {
                     text = str::diacritical_to_ascii(text);
                 }
@@ -844,7 +845,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                     size_t colIdx{0u};
                     for (Glib::ustring& text : row) {
                         if (_s_options.accent_insensitive) {
-                            text = str::diacritical_to_ascii(col);
+                            text = str::diacritical_to_ascii(text);
                         }
                         Glib::MatchInfo match_info;
                         if (re_pattern->match(text, match_info)) {
@@ -882,6 +883,7 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                 spdlog::warn("!! unexp no CtTableCommon");
             }
         } break;
+        default: break;
     }
     return retVal;
 }
@@ -889,8 +891,8 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
 bool CtActions::_check_pattern_in_object_between(CtTreeIter tree_iter,
                                                  Glib::RefPtr<Gtk::TextBuffer> text_buffer,
                                                  Glib::RefPtr<Glib::Regex> re_pattern,
-                                                 const int start_offset,
-                                                 const int end_offset,
+                                                 int start_offset,
+                                                 int end_offset,
                                                  const bool forward,
                                                  CtAnchMatchList& anchMatchList)
 {
@@ -913,7 +915,7 @@ bool CtActions::_check_pattern_in_object_between(CtTreeIter tree_iter,
         std::reverse(obj_vec.begin(), obj_vec.end());
     }
     for (CtAnchoredWidget* pAnchWidg : obj_vec) {
-        if (_check_pattern_in_object(re_pattern, pAnchWidg, forward, anchMatchList) not retVal) {
+        if (_check_pattern_in_object(re_pattern, pAnchWidg, forward, anchMatchList) and not retVal) {
             retVal = true;
         }
     }
