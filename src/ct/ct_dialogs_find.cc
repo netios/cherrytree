@@ -566,66 +566,33 @@ void CtDialogs::match_dialog(const std::string& str_find,
         }
         // remove previous selection because it can cause freezing in specific cases, see more in issue
         auto fake_iter = pCtMainWin->get_text_view().get_buffer()->get_iter_at_offset(-1);
-        pCtMainWin->get_text_view().get_buffer()->place_cursor(fake_iter);
+        auto rCurrBuffer = pCtMainWin->get_text_view().get_buffer();
+        rCurrBuffer->place_cursor(fake_iter);
 
         pCtMainWin->get_tree_view().set_cursor_safe(tree_iter);
-        auto rCurrBuffer = pCtMainWin->get_text_view().get_buffer();
         const int start_offset = list_iter->get_value(s_state.match_store->columns.start_offset);
         const int end_offset = list_iter->get_value(s_state.match_store->columns.end_offset);
         rCurrBuffer->select_range(rCurrBuffer->get_iter_at_offset(start_offset),
                                   rCurrBuffer->get_iter_at_offset(end_offset));
         pCtMainWin->get_text_view().scroll_to(rCurrBuffer->get_insert(), CtTextView::TEXT_SCROLL_MARGIN);
 
+        const CtAnchWidgType anch_type = list_iter->get_value(s_state.match_store->columns.anch_type);
+        if (CtAnchWidgType::None != anch_type) {
+            const size_t anch_cell_idx = list_iter->get_value(s_state.match_store->columns.anch_cell_idx);
+            const int anch_offs_start = list_iter->get_value(s_state.match_store->columns.anch_offs_start);
+            const int anch_offs_end = list_iter->get_value(s_state.match_store->columns.anch_offs_end);
+            CtActions::find_match_in_obj_focus(start_offset,
+                                               rCurrBuffer,
+                                               tree_iter,
+                                               anch_type,
+                                               anch_cell_idx,
+                                               anch_offs_start,
+                                               anch_offs_end);
+        }
+
         // pump events so UI's not going to freeze (#835)
         while (gdk_events_pending())
             gtk_main_iteration();
-
-        const CtAnchWidgType anch_type = list_iter->get_value(s_state.match_store->columns.anch_type);
-        if (CtAnchWidgType::None != anch_type) {
-            Gtk::TextIter anchor_iter = rCurrBuffer->get_iter_at_offset(start_offset);
-            Glib::RefPtr<Gtk::TextChildAnchor> rChildAnchor = anchor_iter.get_child_anchor();
-            if (rChildAnchor) {
-                CtAnchoredWidget* pCtAnchoredWidget = tree_iter.get_anchored_widget(rChildAnchor);
-                if (pCtAnchoredWidget) {
-                    const int anch_offs_start = list_iter->get_value(s_state.match_store->columns.anch_offs_start);
-                    const int anch_offs_end = list_iter->get_value(s_state.match_store->columns.anch_offs_end);
-                    switch (anch_type) {
-                        case CtAnchWidgType::CodeBox: {
-                            if (auto pCodebox = dynamic_cast<CtCodebox*>(pCtAnchoredWidget)) {
-                                pCodebox->get_text_view().set_selection_at_offset_n_delta(anch_offs_start,
-                                    anch_offs_end - anch_offs_start);
-                            }
-                            else {
-                                spdlog::debug("? {} !pCodebox", __FUNCTION__);
-                            }
-                        } break;
-                        case CtAnchWidgType::TableHeavy: [[fallthrough]];
-                        case CtAnchWidgType::TableLight: {
-                            if (auto pTable = dynamic_cast<CtTableCommon*>(pCtAnchoredWidget)) {
-                                const size_t anch_cell_idx = list_iter->get_value(s_state.match_store->columns.anch_cell_idx);
-                                const size_t num_columns = pTable->get_num_columns();
-                                const size_t rowIdx = anch_cell_idx / num_columns;
-                                const size_t colIdx = anch_cell_idx % num_columns;
-                                pTable->set_current_row_column(rowIdx, colIdx);
-                                pTable->grab_focus();
-                                pTable->set_selection_at_offset_n_delta(anch_offs_start,
-                                    anch_offs_end - anch_offs_start);
-                            }
-                            else {
-                                spdlog::debug("? {} !pTable", __FUNCTION__);
-                            }
-                        } break;
-                        default: break;
-                    }
-                }
-                else {
-                    spdlog::debug("? {} !pCtAnchoredWidget", __FUNCTION__);
-                }
-            }
-            else {
-                spdlog::debug("? {} !rChildAnchor", __FUNCTION__);
-            }
-        }
     };
 
     if (not rModel->saved_path.empty()) {

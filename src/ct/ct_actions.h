@@ -241,6 +241,13 @@ private:
     void _update_all_matches_progress();
 public:
     void find_matches_store_reset();
+    static void find_match_in_obj_focus(const int obj_offset,
+                                        Glib::RefPtr<Gtk::TextBuffer> pTextBuffer,
+                                        const CtTreeIter& tree_iter,
+                                        const CtAnchWidgType anch_type,
+                                        const size_t anch_cell_idx,
+                                        const int anch_offs_start,
+                                        const int anch_offs_end);
 
 public:
     // find actions

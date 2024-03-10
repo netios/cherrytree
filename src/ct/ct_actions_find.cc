@@ -680,47 +680,13 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
         ct_text_view.set_selection_at_offset_n_delta(_s_state.latest_match_offsets.first, match_offsets.second - match_offsets.first);
         ct_text_view.scroll_to(text_buffer->get_insert(), CtTextView::TEXT_SCROLL_MARGIN);
         if (anchMatchList.size() > 0u) {
-            Gtk::TextIter anchor_iter = text_buffer->get_iter_at_offset(anchMatchList.front()->start_offset);
-            Glib::RefPtr<Gtk::TextChildAnchor> rChildAnchor = anchor_iter.get_child_anchor();
-            if (rChildAnchor) {
-                CtAnchoredWidget* pCtAnchoredWidget = tree_iter.get_anchored_widget(rChildAnchor);
-                if (pCtAnchoredWidget) {
-                    switch (anchMatchList.front()->anch_type) {
-                        case CtAnchWidgType::CodeBox: {
-                            if (auto pCodebox = dynamic_cast<CtCodebox*>(pCtAnchoredWidget)) {
-                                pCodebox->get_text_view().set_selection_at_offset_n_delta(anchMatchList.front()->anch_offs_start,
-                                    anchMatchList.front()->anch_offs_end - anchMatchList.front()->anch_offs_start);
-                            }
-                            else {
-                                spdlog::debug("? {} !pCodebox", __FUNCTION__);
-                            }
-                        } break;
-                        case CtAnchWidgType::TableHeavy: [[fallthrough]];
-                        case CtAnchWidgType::TableLight: {
-                            if (auto pTable = dynamic_cast<CtTableCommon*>(pCtAnchoredWidget)) {
-                                const size_t anch_cell_idx = anchMatchList.front()->anch_cell_idx;
-                                const size_t num_columns = pTable->get_num_columns();
-                                const size_t rowIdx = anch_cell_idx / num_columns;
-                                const size_t colIdx = anch_cell_idx % num_columns;
-                                pTable->set_current_row_column(rowIdx, colIdx);
-                                pTable->grab_focus();
-                                pTable->set_selection_at_offset_n_delta(anchMatchList.front()->anch_offs_start,
-                                    anchMatchList.front()->anch_offs_end - anchMatchList.front()->anch_offs_start);
-                            }
-                            else {
-                                spdlog::debug("? {} !pTable", __FUNCTION__);
-                            }
-                        } break;
-                        default: break;
-                    }
-                }
-                else {
-                    spdlog::debug("? {} !pCtAnchoredWidget", __FUNCTION__);
-                }
-            }
-            else {
-                spdlog::debug("? {} !rChildAnchor", __FUNCTION__);
-            }
+            CtActions::find_match_in_obj_focus(_s_state.latest_match_offsets.first,
+                                               text_buffer,
+                                               tree_iter,
+                                               anchMatchList.front()->anch_type,
+                                               anchMatchList.front()->anch_cell_idx,
+                                               anchMatchList.front()->anch_offs_start,
+                                               anchMatchList.front()->anch_offs_end);
         }
     }
     if (_s_state.replace_active and 0u == anchMatchList.size()) {
@@ -750,6 +716,56 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
         tree_iter.pending_edit_db_node_buff();
     }
     return true;
+}
+
+/*static*/void CtActions::find_match_in_obj_focus(const int obj_offset,
+                                                  Glib::RefPtr<Gtk::TextBuffer> pTextBuffer,
+                                                  const CtTreeIter& tree_iter,
+                                                  const CtAnchWidgType anch_type,
+                                                  const size_t anch_cell_idx,
+                                                  const int anch_offs_start,
+                                                  const int anch_offs_end)
+{
+    Gtk::TextIter anchor_iter = pTextBuffer->get_iter_at_offset(obj_offset);
+    Glib::RefPtr<Gtk::TextChildAnchor> rChildAnchor = anchor_iter.get_child_anchor();
+    if (rChildAnchor) {
+        CtAnchoredWidget* pCtAnchoredWidget = tree_iter.get_anchored_widget(rChildAnchor);
+        if (pCtAnchoredWidget) {
+            switch (anch_type) {
+                case CtAnchWidgType::CodeBox: {
+                    if (auto pCodebox = dynamic_cast<CtCodebox*>(pCtAnchoredWidget)) {
+                        pCodebox->get_text_view().set_selection_at_offset_n_delta(anch_offs_start,
+                            anch_offs_end - anch_offs_start);
+                    }
+                    else {
+                        spdlog::debug("? {} !pCodebox", __FUNCTION__);
+                    }
+                } break;
+                case CtAnchWidgType::TableHeavy: [[fallthrough]];
+                case CtAnchWidgType::TableLight: {
+                    if (auto pTable = dynamic_cast<CtTableCommon*>(pCtAnchoredWidget)) {
+                        const size_t num_columns = pTable->get_num_columns();
+                        const size_t rowIdx = anch_cell_idx / num_columns;
+                        const size_t colIdx = anch_cell_idx % num_columns;
+                        pTable->set_current_row_column(rowIdx, colIdx);
+                        pTable->grab_focus();
+                        pTable->set_selection_at_offset_n_delta(anch_offs_start,
+                            anch_offs_end - anch_offs_start);
+                    }
+                    else {
+                        spdlog::debug("? {} !pTable", __FUNCTION__);
+                    }
+                } break;
+                default: break;
+            }
+        }
+        else {
+            spdlog::debug("? {} !pCtAnchoredWidget", __FUNCTION__);
+        }
+    }
+    else {
+        spdlog::debug("? {} !rChildAnchor", __FUNCTION__);
+    }
 }
 
 bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
