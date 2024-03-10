@@ -74,11 +74,13 @@ public:
     virtual void write_strings_matrix(std::vector<std::vector<Glib::ustring>>& rows) const = 0;
     virtual size_t get_num_rows() const = 0;
     virtual size_t get_num_columns() const = 0;
+
     size_t current_row() const { return _currentRow < get_num_rows() ? _currentRow : 0; }
     size_t current_column() const { return _currentColumn < get_num_columns() ? _currentColumn : 0; }
     bool row_sort_asc() { return _row_sort(true/*sortAsc*/); }
     bool row_sort_desc() { return _row_sort(false/*sortAsc*/); }
     void row_move_down(const size_t rowIdx);
+    void set_current_row_column(const size_t rowIdx, const size_t colIdx);
 
     virtual void column_add(const size_t afterColIdx) = 0;
     virtual void column_delete(const size_t colIdx) = 0;

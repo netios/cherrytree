@@ -680,34 +680,45 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
         ct_text_view.set_selection_at_offset_n_delta(_s_state.latest_match_offsets.first, match_offsets.second - match_offsets.first);
         ct_text_view.scroll_to(text_buffer->get_insert(), CtTextView::TEXT_SCROLL_MARGIN);
         if (anchMatchList.size() > 0u) {
-            switch (anchMatchList.front()->anch_type) {
-                case CtAnchWidgType::CodeBox: {
-                    Gtk::TextIter anchor_iter = text_buffer->get_iter_at_offset(anchMatchList.front()->start_offset);
-                    Glib::RefPtr<Gtk::TextChildAnchor> rChildAnchor = anchor_iter.get_child_anchor();
-                    if (rChildAnchor) {
-                        CtAnchoredWidget* pCtAnchoredWidget = tree_iter.get_anchored_widget(rChildAnchor);
-                        if (pCtAnchoredWidget) {
+            Gtk::TextIter anchor_iter = text_buffer->get_iter_at_offset(anchMatchList.front()->start_offset);
+            Glib::RefPtr<Gtk::TextChildAnchor> rChildAnchor = anchor_iter.get_child_anchor();
+            if (rChildAnchor) {
+                CtAnchoredWidget* pCtAnchoredWidget = tree_iter.get_anchored_widget(rChildAnchor);
+                if (pCtAnchoredWidget) {
+                    switch (anchMatchList.front()->anch_type) {
+                        case CtAnchWidgType::CodeBox: {
                             if (auto pCodebox = dynamic_cast<CtCodebox*>(pCtAnchoredWidget)) {
                                 pCodebox->get_text_view().set_selection_at_offset_n_delta(anchMatchList.front()->anch_offs_start,
                                     anchMatchList.front()->anch_offs_end - anchMatchList.front()->anch_offs_start);
                             }
                             else {
-                                spdlog::debug("!pCodebox");
+                                spdlog::debug("? {} !pCodebox", __FUNCTION__);
                             }
-                        }
-                        else {
-                            spdlog::debug("!pCtAnchoredWidget");
-                        }
+                        } break;
+                        case CtAnchWidgType::TableHeavy: [[fallthrough]];
+                        case CtAnchWidgType::TableLight: {
+                            if (auto pTable = dynamic_cast<CtTableCommon*>(pCtAnchoredWidget)) {
+                                const size_t anch_cell_idx = anchMatchList.front()->anch_cell_idx;
+                                const size_t rowIdx = anch_cell_idx / get_num_rows();
+                                const size_t colIdx = anch_cell_idx % get_num_rows();
+                                pTable->set_current_row_column(rowIdx, colIdx);
+                                pTable->grab_focus();
+                                pTable->set_selection_at_offset_n_delta(anchMatchList.front()->anch_offs_start,
+                                    anchMatchList.front()->anch_offs_end - anchMatchList.front()->anch_offs_start);
+                            }
+                            else {
+                                spdlog::debug("? {} !pTable", __FUNCTION__);
+                            }
+                        } break;
+                        default: break;
                     }
-                    else {
-                        spdlog::debug("!rChildAnchor");
-                    }
-                } break;
-                case CtAnchWidgType::TableHeavy:
-                case CtAnchWidgType::TableLight: {
-                    
-                } break;
-                default: break;
+                }
+                else {
+                    spdlog::debug("? {} !pCtAnchoredWidget", __FUNCTION__);
+                }
+            }
+            else {
+                spdlog::debug("? {} !rChildAnchor", __FUNCTION__);
             }
         }
     }

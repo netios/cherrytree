@@ -65,6 +65,22 @@ void CtTableCommon::row_move_down(const size_t rowIdx)
     grab_focus();
 }
 
+void CtTableCommon::set_current_row_column(const size_t rowIdx, const size_t colIdx)
+{
+    if (rowIdx < get_num_rows()) {
+        _currentRow = rowIdx;
+    }
+    else {
+        spdlog::warn("?? {} row {} >= {}", __FUNCTION__, rowIdx, get_num_rows());
+    }
+    if (colIdx < get_num_columns()) {
+        _currentColumn = colIdx;
+    }
+    else {
+        spdlog::warn("?? {} col {} >= {}", __FUNCTION__, colIdx, get_num_columns());
+    }
+}
+
 bool CtTableCommon::on_table_button_press_event(GdkEventButton* event)
 {
     _pCtMainWin->get_ct_actions()->curr_table_anchor = this;
