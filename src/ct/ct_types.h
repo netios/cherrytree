@@ -442,6 +442,8 @@ struct CtSearchState {
     std::string    curr_find_pattern;
     bool           from_find_iterated{false};
     bool           from_find_back{false};
+    size_t         find_iter_anchlist_idx{0u};
+    int            find_iter_anchlist_size{-1};
 
     bool           first_useful_node{false};
     int            counted_nodes{0};

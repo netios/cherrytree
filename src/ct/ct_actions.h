@@ -228,14 +228,13 @@ private:
                        bool all_matches);
     bool _check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                                   CtAnchoredWidget* pAnchWidg,
-                                  const bool forward,
                                   CtAnchMatchList& anchMatchList);
     bool _check_pattern_in_object_between(CtTreeIter tree_iter,
-                                          Glib::RefPtr<Gtk::TextBuffer> text_buffer,
                                           Glib::RefPtr<Glib::Regex> pattern,
                                           int start_offset,
                                           int end_offset,
                                           const bool forward,
+                                          const bool all_matches,
                                           CtAnchMatchList& anchMatchList);
     int  _get_num_objs_before_offset(Glib::RefPtr<Gtk::TextBuffer> text_buffer, int max_offset);
     void _update_all_matches_progress();

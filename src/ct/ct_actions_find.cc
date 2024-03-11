@@ -57,6 +57,8 @@ void CtActions::find_in_selected_node()
     Glib::RefPtr<Gtk::TextBuffer> curr_buffer = _pCtMainWin->get_text_view().get_buffer();
 
     if (not _s_state.from_find_iterated) {
+        _s_state.find_iter_anchlist_idx = 0u;
+        _s_state.find_iter_anchlist_size = -1;
         auto iter_insert = curr_buffer->get_iter_at_mark(curr_buffer->get_insert());
         auto iter_bound = curr_buffer->get_iter_at_mark(curr_buffer->get_selection_bound());
         auto entry_predefined_text = curr_buffer->get_text(iter_insert, iter_bound);
@@ -142,6 +144,8 @@ void CtActions::find_in_multiple_nodes()
     Glib::RefPtr<Gtk::TextBuffer> curr_buffer = ctTextView.get_buffer();
 
     if (not _s_state.from_find_iterated) {
+        _s_state.find_iter_anchlist_idx = 0u;
+        _s_state.find_iter_anchlist_size = -1;
         Gtk::TextIter iter_insert = curr_buffer->get_insert()->get_iter();
         Gtk::TextIter iter_bound = curr_buffer->get_selection_bound()->get_iter();
         Glib::ustring entry_predefined_text = curr_buffer->get_text(iter_insert, iter_bound);
@@ -608,15 +612,26 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
     }
 
     CtAnchMatchList anchMatchList;
+    int obj_search_start_offs = start_iter.get_offset();
+    int obj_search_end_offs = match_offsets.first != -1 ? match_offsets.first : (forward ? text_buffer->end().get_offset() : 0);
+    if (not forward) {
+        std::swap(obj_search_start_offs, obj_search_end_offs);
+    }
     if (_check_pattern_in_object_between(tree_iter,
-                                         text_buffer,
                                          re_pattern,
-                                         start_iter.get_offset(),
-                                         match_offsets.first,
+                                         obj_search_start_offs,
+                                         obj_search_end_offs,
                                          forward,
+                                         all_matches,
                                          anchMatchList))
     {
-        match_offsets.first = anchMatchList[0]->start_offset;
+        // find_iter_anchlist_idx is always 0 for all_matches, changes only in iterative find
+        if (_s_state.find_iter_anchlist_idx >= anchMatchList.size()) {
+            spdlog::debug("?? after anchMatchList of {}", anchMatchList.size());
+            _s_state.find_iter_anchlist_idx = 0u;
+            _s_state.find_iter_anchlist_size = anchMatchList.size();
+        }
+        match_offsets.first = anchMatchList[_s_state.find_iter_anchlist_idx]->start_offset;
         match_offsets.second = match_offsets.first + 1;
     }
     if (match_offsets.first == -1) return false;
@@ -770,7 +785,6 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
 
 bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                                          CtAnchoredWidget* pAnchWidg,
-                                         const bool forward,
                                          CtAnchMatchList& anchMatchList)
 {
     bool retVal{false};
@@ -837,9 +851,6 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                         localAnchMatchList.push_back(pAnchMatch);
                         match_info.next();
                     }
-                    if (not forward) {
-                        std::reverse(localAnchMatchList.begin(), localAnchMatchList.end());
-                    }
                     for (auto& pAnchMatch : localAnchMatchList) {
                         anchMatchList.push_back(pAnchMatch);
                     }
@@ -886,9 +897,6 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
                     ++rowIdx;
                 }
                 if (localAnchMatchList.size() > 0u) {
-                    if (not forward) {
-                        std::reverse(localAnchMatchList.begin(), localAnchMatchList.end());
-                    }
                     for (auto& pAnchMatch : localAnchMatchList) {
                         anchMatchList.push_back(pAnchMatch);
                     }
@@ -905,34 +913,26 @@ bool CtActions::_check_pattern_in_object(Glib::RefPtr<Glib::Regex> re_pattern,
 }
 
 bool CtActions::_check_pattern_in_object_between(CtTreeIter tree_iter,
-                                                 Glib::RefPtr<Gtk::TextBuffer> text_buffer,
                                                  Glib::RefPtr<Glib::Regex> re_pattern,
                                                  int start_offset,
                                                  int end_offset,
                                                  const bool forward,
+                                                 const bool all_matches,
                                                  CtAnchMatchList& anchMatchList)
 {
     bool retVal{false};
-    if (not forward) start_offset -= 1;
-    if (end_offset < 0) {
-        if (forward) {
-            Gtk::TextIter start, end;
-            text_buffer->get_bounds(start, end);
-            end_offset = end.get_offset();
-        }
-        else {
-            end_offset = 0;
-        }
-    }
-    if (not forward) std::swap(start_offset, end_offset);
-
     std::list<CtAnchoredWidget*> obj_vec = tree_iter.get_anchored_widgets(start_offset, end_offset);
     if (not forward) {
         std::reverse(obj_vec.begin(), obj_vec.end());
     }
     for (CtAnchoredWidget* pAnchWidg : obj_vec) {
-        if (_check_pattern_in_object(re_pattern, pAnchWidg, forward, anchMatchList) and not retVal) {
-            retVal = true;
+        if (_check_pattern_in_object(re_pattern, pAnchWidg, anchMatchList)) {
+            if (not retVal) {
+                retVal = true;
+            }
+            if (not all_matches) {
+                break;
+            }
         }
     }
     return retVal;
