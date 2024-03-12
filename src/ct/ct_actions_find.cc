@@ -303,9 +303,13 @@ void CtActions::find_again_iter(const bool fromIterativeDialog)
                 spdlog::debug("{}-- {}/{}", __FUNCTION__, _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
             }
             else {
-                spdlog::debug("{} LoLim {}/{}", __FUNCTION__, _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
+                spdlog::debug("{} LOLIM {}/{}", __FUNCTION__, _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
                 _s_state.find_iter_anchlist_size = 0u;
                 _s_state.find_iter_anchlist_idx = 0u;
+                Glib::RefPtr<Gtk::TextBuffer> text_buffer = _pCtMainWin->get_text_view().get_buffer();
+                Gtk::TextIter min_iter = text_buffer->get_iter_at_offset(_s_state.latest_match_offsets.first);
+                if (not min_iter.backward_char()) spdlog::debug("?? {} obj at offs 0", __FUNCTION__);
+                text_buffer->place_cursor(min_iter);
             }
         }
         else {
@@ -314,9 +318,12 @@ void CtActions::find_again_iter(const bool fromIterativeDialog)
                 spdlog::debug("{}++ {}/{}", __FUNCTION__, _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
             }
             else {
-                spdlog::debug("{} UpLim {}/{}", __FUNCTION__, _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
+                spdlog::debug("{} HILIM {}/{}", __FUNCTION__, _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
                 _s_state.find_iter_anchlist_size = 0u;
                 _s_state.find_iter_anchlist_idx = 0u;
+                Glib::RefPtr<Gtk::TextBuffer> text_buffer = _pCtMainWin->get_text_view().get_buffer();
+                Gtk::TextIter max_iter = text_buffer->get_iter_at_offset(_s_state.latest_match_offsets.second);
+                text_buffer->place_cursor(max_iter);
             }
         }
     }
