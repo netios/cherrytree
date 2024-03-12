@@ -57,8 +57,8 @@ void CtActions::find_in_selected_node()
     Glib::RefPtr<Gtk::TextBuffer> curr_buffer = _pCtMainWin->get_text_view().get_buffer();
 
     if (not _s_state.from_find_iterated) {
+        _s_state.find_iter_anchlist_size = 0u;
         _s_state.find_iter_anchlist_idx = 0u;
-        _s_state.find_iter_anchlist_size = -1;
         auto iter_insert = curr_buffer->get_iter_at_mark(curr_buffer->get_insert());
         auto iter_bound = curr_buffer->get_iter_at_mark(curr_buffer->get_selection_bound());
         auto entry_predefined_text = curr_buffer->get_text(iter_insert, iter_bound);
@@ -144,8 +144,8 @@ void CtActions::find_in_multiple_nodes()
     Glib::RefPtr<Gtk::TextBuffer> curr_buffer = ctTextView.get_buffer();
 
     if (not _s_state.from_find_iterated) {
+        _s_state.find_iter_anchlist_size = 0u;
         _s_state.find_iter_anchlist_idx = 0u;
-        _s_state.find_iter_anchlist_size = -1;
         Gtk::TextIter iter_insert = curr_buffer->get_insert()->get_iter();
         Gtk::TextIter iter_bound = curr_buffer->get_selection_bound()->get_iter();
         Glib::ustring entry_predefined_text = curr_buffer->get_text(iter_insert, iter_bound);
@@ -296,6 +296,30 @@ void CtActions::find_again_iter(const bool fromIterativeDialog)
     const bool restore_iterative_dialog = _s_options.iterative_dialog;
     _s_options.iterative_dialog = fromIterativeDialog;
     _s_state.from_find_iterated = true;
+    if (0u != _s_state.find_iter_anchlist_size) {
+        if (_s_state.from_find_back) {
+            if (_s_state.find_iter_anchlist_idx >= 1u) {
+                --_s_state.find_iter_anchlist_idx;
+                spdlog::debug("{}-- {}/{}", __FUNCTION__, _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
+            }
+            else {
+                spdlog::debug("{} LoLim {}/{}", __FUNCTION__, _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
+                _s_state.find_iter_anchlist_size = 0u;
+                _s_state.find_iter_anchlist_idx = 0u;
+            }
+        }
+        else {
+            if (_s_state.find_iter_anchlist_idx < (_s_state.find_iter_anchlist_size -1u)) {
+                ++_s_state.find_iter_anchlist_idx;
+                spdlog::debug("{}++ {}/{}", __FUNCTION__, _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
+            }
+            else {
+                spdlog::debug("{} UpLim {}/{}", __FUNCTION__, _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
+                _s_state.find_iter_anchlist_size = 0u;
+                _s_state.find_iter_anchlist_idx = 0u;
+            }
+        }
+    }
     switch (_s_state.curr_find_type) {
         case CtCurrFindType::SingleNode: {
             find_in_selected_node();
@@ -626,13 +650,33 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
                                          anchMatchList))
     {
         // find_iter_anchlist_idx is always 0 for all_matches, changes only in iterative find
-        if (_s_state.find_iter_anchlist_idx >= anchMatchList.size()) {
-            spdlog::debug("?? after anchMatchList of {}", anchMatchList.size());
-            _s_state.find_iter_anchlist_idx = 0u;
+        if (not all_matches) {
+            if (0u == _s_state.find_iter_anchlist_size) {
+                // first iteration in anch match list
+                _s_state.find_iter_anchlist_idx = 0u;
+            }
+            else if (anchMatchList.size() != _s_state.find_iter_anchlist_size) {
+                spdlog::debug("?? find_iter_anchlist_size {}->{}", _s_state.find_iter_anchlist_size, anchMatchList.size());
+                _s_state.find_iter_anchlist_idx = 0u;
+            }
+            else if (_s_state.find_iter_anchlist_idx >= anchMatchList.size()) {
+                spdlog::debug("?? after anchMatchList of {}", anchMatchList.size());
+                _s_state.find_iter_anchlist_idx = 0u;
+            }
             _s_state.find_iter_anchlist_size = anchMatchList.size();
+            spdlog::debug("anchMatchList {}->{} {}/{}",
+                obj_search_start_offs, obj_search_end_offs,
+                _s_state.find_iter_anchlist_idx, _s_state.find_iter_anchlist_size);
         }
-        match_offsets.first = anchMatchList[_s_state.find_iter_anchlist_idx]->start_offset;
+        match_offsets.first = anchMatchList[0]->start_offset;
         match_offsets.second = match_offsets.first + 1;
+    }
+    else {
+        if (not all_matches) {
+            if (0u != _s_state.find_iter_anchlist_size) {
+                _s_state.find_iter_anchlist_size = 0u;
+            }
+        }
     }
     if (match_offsets.first == -1) return false;
 
@@ -695,13 +739,14 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
         ct_text_view.set_selection_at_offset_n_delta(_s_state.latest_match_offsets.first, match_offsets.second - match_offsets.first);
         ct_text_view.scroll_to(text_buffer->get_insert(), CtTextView::TEXT_SCROLL_MARGIN);
         if (anchMatchList.size() > 0u) {
+            auto& pAnchMatch = anchMatchList[_s_state.find_iter_anchlist_idx];
             CtActions::find_match_in_obj_focus(_s_state.latest_match_offsets.first,
                                                text_buffer,
                                                tree_iter,
-                                               anchMatchList.front()->anch_type,
-                                               anchMatchList.front()->anch_cell_idx,
-                                               anchMatchList.front()->anch_offs_start,
-                                               anchMatchList.front()->anch_offs_end);
+                                               pAnchMatch->anch_type,
+                                               pAnchMatch->anch_cell_idx,
+                                               pAnchMatch->anch_offs_start,
+                                               pAnchMatch->anch_offs_end);
         }
     }
     if (_s_state.replace_active and 0u == anchMatchList.size()) {
@@ -741,6 +786,7 @@ bool CtActions::_find_pattern(CtTreeIter tree_iter,
                                                   const int anch_offs_start,
                                                   const int anch_offs_end)
 {
+    spdlog::debug("{} obj={} cell={} {}->{}", __FUNCTION__, obj_offset, anch_cell_idx, anch_offs_start, anch_offs_end);
     Gtk::TextIter anchor_iter = pTextBuffer->get_iter_at_offset(obj_offset);
     Glib::RefPtr<Gtk::TextChildAnchor> rChildAnchor = anchor_iter.get_child_anchor();
     if (rChildAnchor) {
